@@ -1,0 +1,20 @@
+body {
+  text-align: center;
+}
+
+#canvas {
+  border: solid black 2px;
+  border-radius: 5px;
+  background-color: wheat;
+  margin: 2em;
+}
+
+#response {
+  font-size: 2em;
+  margin-bottom: 1em;
+}
+
+#clear {
+  font-size: 1.4em;
+  padding: 0.5em 1em;
+}
