@@ -33,3 +33,34 @@ body {
   color: white;
   background-color: #222222;
 }
+
+@media screen and (max-width: 600px) {
+  body {
+    margin: 0;
+  }
+
+  #canvas {
+    border: solid black 2px;
+    border-radius: 10px;
+    background-color: wheat;
+    margin: 1em 0;
+    width: 80%;
+  }
+
+  #toggleButtons {
+    margin-bottom: 1em;
+  }
+
+  #toggleButtons * {
+    font-size: 1em;
+  }
+
+  #response {
+    font-size: 1em;
+    margin-bottom: 0.5em;
+  }
+
+  #clear{
+    font-size: 0.7em;
+  }
+}

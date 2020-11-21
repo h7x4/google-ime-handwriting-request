@@ -210,7 +210,10 @@ toggleButtons
 
 const correctTouchOffset = (x, y) => {
 const canvasRect = canvas.getBoundingClientRect();
-return [x - canvasRect.left, y - canvasRect.top];
+return [
+  (x - canvasRect.left) * canvas.width / canvasRect.width,
+  (y - canvasRect.top) * canvas.width / canvasRect.width
+];
 }
 
 canvas.ontouchstart = event => {
