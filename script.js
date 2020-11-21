@@ -1,6 +1,7 @@
 const responseDiv = document.getElementById("response");
 const clearButton = document.getElementById("clear");
 const canvas = document.getElementById("canvas");
+const toggleButtons = Array.from(document.getElementById('toggleButtons').children);
 const ctx = canvas.getContext('2d');
 
 /* -------------------------------------------------------------------------- */
@@ -40,9 +41,14 @@ const sendKanjiRequest = async (strokes) => fetch(API, {
   .then(data => data.json())
   .then(res => {
     if (res[0] != "SUCCESS") throw Error(res[0]);
-    responseDiv.innerText = res[1][0][1].join(', ');
-  })
-  .catch(err => console.error(err));
+    return res;
+  });
+  
+
+const updateResponses = async (strokes) => 
+  sendKanjiRequest(strokes)
+    .then(res => responseDiv.innerText = postProcess(res[1][0][1]).join(', '))
+    .catch(err => console.error(err));
 
 /* -------------------------------------------------------------------------- */
 /*                                   CANVAS                                   */
@@ -67,8 +73,7 @@ let timerStart = 0;
 let x = 0;
 let y = 0;
 
-/** Clear/initialize the newStroke variable after adding the current to globalStrokes */
-genNewStroke = () => {
+const resetNewStroke = () => {
   newStroke = {
     'xs': [],
     'ys': [],
@@ -76,7 +81,7 @@ genNewStroke = () => {
   };
 }
 
-genNewStroke();
+resetNewStroke();
 
 const addPointToNewStroke = (x, y) => {
   newStroke.xs.push(x);
@@ -90,7 +95,7 @@ const drawLine = (dx, dy) => {
   ctx.stroke();
 }
 
-updateStroke = (newX, newY) => {
+const updateStroke = (newX, newY) => {
   drawLine(newX, newY);
   addPointToNewStroke(newX, newY);
   x = newX;
@@ -99,7 +104,7 @@ updateStroke = (newX, newY) => {
 }
 
 const initStroke = (initX, initY) => {
-  genNewStroke();
+  resetNewStroke();
   timerStart = Date.now();
   x = initX;
   y = initY;
@@ -123,7 +128,7 @@ const endStroke = () => {
   mouseDown = false;
   ctx.closePath();
   strokes.push([newStroke.xs, newStroke.ys, newStroke.times]);
-  sendKanjiRequest(strokes);
+  updateResponses(strokes);
 }
 
 const clearBoard = () => {
@@ -132,11 +137,78 @@ const clearBoard = () => {
   responseDiv.innerHTML = 'None';
 }
 
-canvas.onmousedown = event => initStroke(event.offsetX, event.offsetY);
-canvas.onmousemove = event => updateStrokeIfPrevLineIsDone(event.offsetX, event.offsetY);
-canvas.onmouseup = () => endStroke();
+/* -------------------------------------------------------------------------- */
+/*                        POST-PROCESSING AND FILTERING                       */
+/* -------------------------------------------------------------------------- */
 
-const getOffset = (x, y) => {
+const ON_COLOR = '#4d9e2a';
+const OFF_COLOR = '#fa2b2b';
+
+const regexState = {
+  state: {
+    kanji: true,
+    hiragana: true,
+    katakana: true,
+    all: false
+  },
+  regex: {
+    kanji: RegExp(/\p{Script_Extensions=Han}/u),
+    hiragana: RegExp(/\p{Script_Extensions=Hiragana}/u),
+    katakana: RegExp(/\p{Script_Extensions=Katakana}/u),
+    all: RegExp(/./)
+  }
+};
+
+const genCharSet = id => id.slice(6).toLowerCase();
+
+const colorButton = id => {
+  const button = document.getElementById(id);
+  button.style.backgroundColor =
+    regexState.state[genCharSet(id)] ? ON_COLOR : OFF_COLOR;
+}
+
+const toggleRegexState = event => {
+  const characterSet = genCharSet(event.target.id);
+
+  regexState.state[characterSet] = !regexState.state[characterSet];
+  colorButton(event.target.id);
+  if (strokes.length !== 0) updateResponses(strokes);
+}
+
+const genCombinedRegexString = () => '^[' +
+  Object.keys(regexState.regex)
+    .filter(key => regexState.state[key])
+    .map(key => regexState.regex[key].source)
+    .join('') + ']*$';
+
+const postProcess = results => {
+  const regexString = regexState.state.all
+  ? '.*'
+  : genCombinedRegexString();
+
+  const combinedRegex = RegExp(`${regexString}`, 'u');
+  return results.filter(result => combinedRegex.test(result));
+}
+
+/* -------------------------------------------------------------------------- */
+/*                          EVENT LISTENERS AND SETUP                         */
+/* -------------------------------------------------------------------------- */
+
+// Add eventlisteners and colors to all toggle-buttons
+toggleButtons
+  .map(button => {
+    button.addEventListener('click', toggleRegexState);
+    colorButton(button.id);
+  });
+  
+  canvas.onmousedown = event => initStroke(event.offsetX, event.offsetY);
+  canvas.onmousemove = event => updateStrokeIfPrevLineIsDone(event.offsetX, event.offsetY);
+  canvas.onmouseup = () => endStroke();
+  clearButton.onclick = () => clearBoard();
+
+// Touch support
+
+const correctTouchOffset = (x, y) => {
 const canvasRect = canvas.getBoundingClientRect();
 return [x - canvasRect.left, y - canvasRect.top];
 }
@@ -144,17 +216,15 @@ return [x - canvasRect.left, y - canvasRect.top];
 canvas.ontouchstart = event => {
   event.preventDefault();
   ({clientX, clientY} = event.changedTouches[0]);
-  [x, y] = getOffset(clientX, clientY);
+  [x, y] = correctTouchOffset(clientX, clientY);
   initStroke(x, y);
 }
 
 canvas.ontouchmove = event => {
   event.preventDefault();
   ({clientX, clientY} = event.changedTouches[0]);
-  [x, y] = getOffset(clientX, clientY);
+  [x, y] = correctTouchOffset(clientX, clientY);
   updateStrokeIfPrevLineIsDone(x, y);
 }
 
 canvas.ontouchend = () => endStroke();
-
-clearButton.onclick = () => clearBoard();

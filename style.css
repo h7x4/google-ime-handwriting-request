@@ -4,9 +4,21 @@ body {
 
 #canvas {
   border: solid black 2px;
-  border-radius: 5px;
+  border-radius: 10px;
   background-color: wheat;
   margin: 2em;
+}
+
+#toggleButtons {
+  margin-bottom: 2em;
+}
+
+#toggleButtons * {
+  padding: 0.2em 0.4em;
+  margin: 0em 0.2em;
+  border-radius: 10px;
+  color: white;
+  font-size: 2em;
 }
 
 #response {
@@ -17,4 +29,7 @@ body {
 #clear {
   font-size: 1.4em;
   padding: 0.5em 1em;
+  border-radius: 10px;
+  color: white;
+  background-color: #222222;
 }
